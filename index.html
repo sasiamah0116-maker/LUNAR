@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>LUNAR · Lunar Day Calendar</title>
+  <meta name="description" content="LUNAR shows the type of day ahead from lunar-day analysis, including Evil Days and moon phases, synced to your phone calendar.">
+  <meta name="theme-color" content="#070b1a">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+
+  <header class="top">
+    <a class="brand" href="/"><span class="brand-moon" aria-hidden="true"></span>LUNAR</a>
+    <a class="btn ghost small" href="#sync">Sync to phone</a>
+  </header>
+
+  <main>
+    <section class="hero" aria-live="polite">
+      <div class="hero-moon" id="heroMoon"></div>
+      <div class="hero-text">
+        <p class="eyebrow" id="heroDate">Today</p>
+        <h1 id="heroType">Reading the moon…</h1>
+        <p class="hero-sub" id="heroSub"></p>
+        <p class="hero-meaning" id="heroMeaning"></p>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="calTitle">
+      <div class="cal-head">
+        <button class="icon-btn" id="prevMonth" aria-label="Previous month">‹</button>
+        <h2 id="calTitle">Month</h2>
+        <button class="icon-btn" id="nextMonth" aria-label="Next month">›</button>
+      </div>
+      <div class="weekdays" aria-hidden="true">
+        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+      </div>
+      <div class="grid" id="grid" role="grid"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section class="two-col">
+      <div class="card" id="detail" aria-live="polite"></div>
+      <div class="card">
+        <h3>Upcoming moon phases</h3>
+        <ul class="phases" id="phases"></ul>
+      </div>
+    </section>
+
+    <section class="card sync" id="sync" aria-labelledby="syncTitle">
+      <h2 id="syncTitle">Put LUNAR in your phone's calendar</h2>
+      <p class="muted">Every day shows its lunar day type, with Evil Days marked ⛔, plus exact New, Quarter and Full Moon times. Works with iPhone, Android (Google Calendar) and Outlook, and keeps itself updated.</p>
+
+      <form id="syncForm" novalidate>
+        <label>Email
+          <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required>
+        </label>
+        <label>Time zone
+          <input id="tz" name="tz" list="tzList" autocomplete="off" required>
+          <datalist id="tzList"></datalist>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="alerts" checked>
+          Remind me the evening before every Evil Day
+        </label>
+        <button class="btn" type="submit" id="syncBtn">Sync my calendar</button>
+        <p class="form-msg" id="formMsg" role="status"></p>
+      </form>
+
+      <div class="sync-result" id="syncResult" hidden>
+        <p class="ok" id="syncOk">Your calendar is ready. Pick your phone:</p>
+        <div class="sync-buttons">
+          <a class="btn" id="appleLink">iPhone / Apple Calendar</a>
+          <a class="btn" id="googleLink" target="_blank" rel="noopener">Android / Google Calendar</a>
+          <a class="btn ghost" id="outlookLink" target="_blank" rel="noopener">Outlook</a>
+          <a class="btn ghost" id="downloadLink">Download .ics file</a>
+        </div>
+        <div class="copy-row">
+          <input id="feedUrl" readonly aria-label="Calendar feed address">
+          <button class="btn ghost small" id="copyBtn" type="button">Copy link</button>
+        </div>
+        <details>
+          <summary>Step-by-step help</summary>
+          <p><strong>iPhone:</strong> tap “iPhone / Apple Calendar”, then <em>Subscribe</em>. LUNAR appears as its own calendar.</p>
+          <p><strong>Android:</strong> tap “Android / Google Calendar” and confirm <em>Add</em>. Then open the Google Calendar app → Settings → LUNAR → turn on <em>Sync</em>.</p>
+          <p><strong>Anything else:</strong> copy the link and use “Subscribe to calendar” / “Add calendar from URL”.</p>
+        </details>
+        <button class="linkish" type="button" id="unsubBtn">Stop syncing &amp; delete my email</button>
+      </div>
+    </section>
+
+    <section class="card about">
+      <h3>How LUNAR reads the day</h3>
+      <p>The lunar month has 30 lunar days. A new lunar day begins each time the Moon moves another 12° ahead of the Sun, so lunar days don't line up with midnight. LUNAR reads each calendar date by the lunar day in force at sunrise (06:00 local), the traditional rule. Each lunar day belongs to one of five types, and the empty days (lunar days 4, 9 and 14 of each half of the month) are marked as <strong class="evil-text">Evil Days</strong>.</p>
+      <p class="muted small">For reflection and tradition. LUNAR does not make scientific predictions.</p>
+    </section>
+  </main>
+
+  <footer>LUNAR · moon positions calculated with Meeus algorithms</footer>
+  <script src="/app.js"></script>
+</body>
+</html>

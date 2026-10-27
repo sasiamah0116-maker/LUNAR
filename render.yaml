@@ -1,0 +1,20 @@
+# Render Blueprint: in Render choose New → Blueprint and pick this repository.
+services:
+  - type: web
+    name: lunar
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 server.py
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PUBLIC_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: RESEND_AUDIENCE_ID
+        sync: false
