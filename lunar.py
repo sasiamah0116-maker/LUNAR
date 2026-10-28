@@ -117,7 +117,7 @@ def _signed(dt, target):
 def _next_crossing(dt, target, max_days):
     """First moment after dt at which elongation reaches target (it only increases)."""
     lo, hi = dt, dt + timedelta(days=max_days)
-    for _ in range(40):
+    for _ in range(30):  # ~1 ms precision over a 10-day window
         mid = lo + (hi - lo) / 2
         if _signed(mid, target) < 0:
             lo = mid

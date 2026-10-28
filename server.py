@@ -20,6 +20,8 @@ Environment
                       permanent email list that survives hosting restarts
 """
 
+import gzip
+import hashlib
 import json
 import os
 import re
@@ -41,7 +43,9 @@ DATA_FILE = ROOT / "data" / "subscribers.json"
 EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,190}\.[A-Za-z]{2,}$")
 
 _lock = threading.Lock()
+_build_lock = threading.Lock()
 _feed_cache = {}
+_requested = {("UTC", False), ("Africa/Accra", True), ("Africa/Accra", False)}
 _rate = {}
 
 
@@ -60,12 +64,28 @@ def save_subscribers(subs):
 
 
 def feed(tz_name, alerts):
+    """(body, gzipped body, etag) for a feed, built at most once per zone per day."""
     key = (tz_name, alerts, datetime.now(timezone.utc).date())
     if key not in _feed_cache:
-        if len(_feed_cache) > 200:
-            _feed_cache.clear()
-        _feed_cache[key] = lunar.build_ics(tz_name, alerts).encode("utf-8")
+        with _build_lock:
+            if key not in _feed_cache:
+                if len(_feed_cache) > 200:
+                    _feed_cache.clear()
+                body = lunar.build_ics(tz_name, alerts).encode("utf-8")
+                etag = '"%s"' % hashlib.sha1(body).hexdigest()[:16]
+                _feed_cache[key] = (body, gzip.compress(body), etag)
+    _requested.add((tz_name, alerts))
     return _feed_cache[key]
+
+
+def warm_feeds():
+    """Rebuild every requested feed right after midnight UTC so calendar apps never wait on a build."""
+    while True:
+        for tz_name, alerts in list(_requested):
+            feed(tz_name, alerts)
+        now = datetime.now(timezone.utc)
+        tomorrow = datetime.combine(now.date() + timedelta(days=1), datetime.min.time(), timezone.utc)
+        time.sleep((tomorrow - now).total_seconds() + 5)
 
 
 def feed_path(tz_name, alerts):
@@ -115,6 +135,8 @@ def send_welcome_email(email, base_url, token, feed):
 
 
 class Handler(SimpleHTTPRequestHandler):
+    head_only = False  # some calendar apps check a feed with HEAD before fetching it
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(PUBLIC), **kwargs)
 
@@ -136,17 +158,32 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
-        self.wfile.write(body)
+        if not self.head_only:
+            self.wfile.write(body)
 
-    def send_ics(self, body, download=False):
+    def send_ics(self, cached, download=False):
+        body, gz, etag = cached
+        if self.headers.get("If-None-Match") == etag:
+            self.send_response(304)
+            self.send_header("ETag", etag)
+            self.end_headers()
+            return
+        use_gzip = "gzip" in self.headers.get("Accept-Encoding", "")
+        if use_gzip:
+            body = gz
         self.send_response(200)
         self.send_header("Content-Type", "text/calendar; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        if use_gzip:
+            self.send_header("Content-Encoding", "gzip")
+        self.send_header("Vary", "Accept-Encoding")
+        self.send_header("ETag", etag)
         self.send_header("Cache-Control", "public, max-age=3600")
         disp = "attachment" if download else "inline"
         self.send_header("Content-Disposition", f'{disp}; filename="lunar.ics"')
         self.end_headers()
-        self.wfile.write(body)
+        if not self.head_only:
+            self.wfile.write(body)
 
     def read_json(self):
         length = int(self.headers.get("Content-Length") or 0)
@@ -213,7 +250,11 @@ class Handler(SimpleHTTPRequestHandler):
 
         if path in ("/", "/index.html"):
             self.path = "/index.html"
-        return super().do_GET()
+        return super().do_HEAD() if self.head_only else super().do_GET()
+
+    def do_HEAD(self):
+        self.head_only = True
+        self.do_GET()
 
     def do_POST(self):
         path = urlparse(self.path).path
@@ -258,4 +299,5 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     host, port = os.environ.get("HOST", "0.0.0.0"), int(os.environ.get("PORT", "8080"))
     print(f"LUNAR running on http://{host}:{port}")
+    threading.Thread(target=warm_feeds, daemon=True).start()
     ThreadingHTTPServer((host, port), Handler).serve_forever()
