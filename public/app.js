@@ -124,7 +124,8 @@
     const https = location.origin + feed;
     const webcal = https.replace(/^https?:/, "webcal:");
     $("appleLink").href = webcal;
-    $("googleLink").href = "https://calendar.google.com/calendar/render?cid=" + encodeURIComponent(webcal);
+    // Google fetches an https cid directly; a webcal one costs it an extra http redirect.
+    $("googleLink").href = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(https);
     $("outlookLink").href = `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(https)}&name=LUNAR`;
     $("downloadLink").href = feed + "?download=1";
     $("feedUrl").value = https;
